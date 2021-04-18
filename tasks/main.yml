@@ -1,0 +1,4 @@
+---
+# tasks file for cms_sap_cansb
+  - import_tasks: prereq.yml
+  - import_tasks: tsm_client_config_ora.yml

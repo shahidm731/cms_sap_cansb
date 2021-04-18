@@ -1,0 +1,56 @@
+---
+  - include_vars: tsmpasswd.yml
+  - debug:
+      msg: 'tsm_node_password is "{{ tsm_node_password }}"'
+
+  - debug:
+      msg: 'tsm_node_password is "{{ tsm_server_password }}"'
+
+# To find the System's LONG_BIT 64 bit
+  - name: run command getconf
+    shell: getconf LONG_BIT
+    register: getcono
+  
+  - debug: var=getcono
+
+  - set_fact:
+      tsm_api_home: "/usr/tivoli/tsm/client/api/bin/{{ item }}"
+    with_items:
+      - "{{ getcono.stdout_lines }}"
+  - debug: var=tsm_api_home
+
+  - name: get sids
+    get_sids:
+      value: somevalue
+    register: sids
+
+# To find the ORACLE_HOME
+  - name: run command getconf
+    shell: source /oracle/"{{ item }}"/.dbenv.sh; echo $ORACLE_HOME
+    register: orahome
+    with_items:
+      - "{{ sids.msg }}"
+  
+  - name: backup dsm files
+    copy:
+      src: "{{ item.filname }}"
+      dest: "{{ item.filname }}.old"
+      remote_src: yes
+    with_items:
+      - {filname: '/usr/tivoli/tsm/client/api/bin64/dsm.sys' }
+      #- {filname: '/usr/tivoli/tsm/client/api/bin64/dsm.opt' }
+
+  - name: get dsm server details
+    get_help:
+      filename: "{{ item.fil }}"
+      varname: "{{ item.varn }}"
+    register: dsmarray
+    with_items:
+      - {fil: dsmsys, varn: TCPServeraddress}
+      - {fil: dsmsys, varn: TCPPort}
+
+  - debug:
+      msg: msg is {{ item }}
+    loop:
+      - "{{ dsmarray.results }}"
+    

@@ -1,0 +1,49 @@
+---
+  - name: check the s3bucket
+    shell:  grep -i bucket_location /.s3cfg | awk -F'=' '{print $2}' | xargs
+    #gather_facts: no
+    register: bucket
+
+  - name: validate pre requisite files.
+    val_file:
+        filename: "{{ item.name }}"
+        type: "{{ item.type }}"
+        bucket: bucket
+    register: result
+    #failed_when: result != 'File NOT Found'"
+    with_items:
+      - { name: 'dsm_os_DLY.sys', type: 'local' }
+    
+  - debug: var=result
+
+  - name: change directory permissions.
+    file:
+      path: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - /usr/tivoli
+      - /usr/tivoli/tsm
+      - /usr/tivoli/tsm/client
+      - /usr/tivoli/tsm/client/ba
+      - /usr/tivoli/tsm/client/ba/bin64/
+  
+  - name: get sids
+    get_sids:
+      value: somevalue
+    register: sids
+  
+  - debug: var=sids.msg
+
+  - name: create dbenv.sh file
+    file:
+      path: "/oracle/{{ item }}/dbenv.sh"
+      mode: 0755
+      owner: 'ora{{ item | lower }}'
+      group: dba
+      state: touch
+    with_items:
+      - "{{ sids.msg }}"
+      
+  
+ 
